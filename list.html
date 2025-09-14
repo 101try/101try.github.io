@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据列表</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>数据列表</h1>
+            <nav>
+                <a href="index.html">上传</a>
+                <a href="list.html" class="active">列表</a>
+                <a href="detail.html">详情</a>
+            </nav>
+        </header>
+
+        <main>
+            <div class="list-section">
+                <div class="list-header">
+                    <h2>解析的数据列表</h2>
+                    <p>共 <span id="totalCount">0</span> 条有效数据</p>
+                </div>
+                
+                <div class="table-container">
+                    <table id="dataTable">
+                        <thead>
+                            <tr>
+                                <th>序号</th>
+                                <th>姓名</th>
+                                <th>手机号</th>
+                                <th>身份证号</th>
+                                <th>评分结果</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- 数据将通过JavaScript填充 -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="actions">
+                    <button onclick="window.location.href='index.html'">重新上传</button>
+                    <button onclick="exportToExcel()">导出数据</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        // 加载并显示数据
+        document.addEventListener('DOMContentLoaded', function() {
+            const storedData = localStorage.getItem('excelData');
+            if (!storedData) {
+                alert('没有找到数据，请先上传Excel文件');
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            const data = JSON.parse(storedData);
+            displayData(data);
+        });
+
+        function displayData(data) {
+            const tbody = document.querySelector('#dataTable tbody');
+            const totalCountElement = document.getElementById('totalCount');
+            
+            // 更新总数
+            totalCountElement.textContent = data.length;
+            
+            // 清空现有内容
+            tbody.innerHTML = '';
+            
+            // 填充数据
+            data.forEach((row, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${escapeHtml(row.name)}</td>
+                    <td>${escapeHtml(row.phone)}</td>
+                    <td>${maskIdCard(escapeHtml(row.idCard))}</td>
+                    <td class="score-cell">${row.score.toFixed(2)}</td>
+                `;
+                
+                // 添加点击事件
+                tr.addEventListener('click', () => {
+                    viewDetails(index);
+                });
+                
+                tbody.appendChild(tr);
+            });
+        }
+
+        function viewDetails(index) {
+            // 存储当前选择的行索引并跳转到详情页
+            localStorage.setItem('selectedIndex', index);
+            window.location.href = 'detail.html';
+        }
+
+        function exportToExcel() {
+            const storedData = localStorage.getItem('excelData');
+            if (!storedData) return;
+            
+            const data = JSON.parse(storedData);
+            const worksheet = XLSX.utils.json_to_sheet(data);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "数据列表");
+            
+            // 生成Excel文件并下载
+            XLSX.writeFile(workbook, "解析数据.xlsx");
+        }
+
+        // 辅助函数
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function maskIdCard(idCard) {
+            if (idCard.length <= 8) return idCard;
+            return idCard.substring(0, 4) + '********' + idCard.substring(idCard.length - 4);
+        }
+    </script>
+</body>
+</html>
