@@ -55,66 +55,9 @@
                         <!-- 图例将通过JavaScript生成 -->
                     </div>
                 </div>
-                <div class="score-radar">
-                    <h3>六维度评分图</h3>
-                    <canvas id="radarChart" width="400" height="400"></canvas>
-                </div>
-            </div>
-            <div class="dimension-details">
-                <h3>各维度评分详情</h3>
-                <div class="dimensions-grid">
-                    <div class="dimension-item">
-                        <h4>消费能力</h4>
-                        <div class="score-bar">
-                            <div class="score-fill" id="consumptionFill"></div>
-                        </div>
-                        <span class="dimension-score" id="consumptionScore"></span>
-                    </div>        
-                    <div class="dimension-item">
-                        <h4>通讯活跃</h4>
-                        <div class="score-bar">
-                            <div class="score-fill" id="communicationFill"></div>
-                        </div>
-                        <span class="dimension-score" id="communicationScore"></span>                        
-                    </div>
-                    <div class="dimension-item">
-                        <h4>工作稳定</h4>
-                        <div class="score-bar">
-                            <div class="score-fill" id="stabilityFill"></div>
-                        </div>
-                        <span class="dimension-score" id="stabilityScore"></span>
-                    </div>
-                        
-                    <div class="dimension-item">
-                        <h4>资产状况</h4>
-                        <div class="score-bar">
-                            <div class="score-fill" id="assetsFill"></div>
-                        </div>
-                        <span class="dimension-score" id="assetsScore"></span>
-                    </div>
-                        
-                    <div class="dimension-item">
-                        <h4>信贷活跃</h4>
-                        <div class="score-bar">
-                            <div class="score-fill" id="creditFill"></div>
-                        </div>
-                        <span class="dimension-score" id="creditScore"></span>
-                    </div>
-                        
-                    <div class="dimension-item">
-                        <h4>居住稳定</h4>
-                        <div class="score-bar">
-                            <div class="score-fill" id="residenceFill"></div>
-                        </div>
-                        <span class="dimension-score" id="residenceScore"></span>
-                    </div>
-                </div>
             </div>
         </main>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="script.js"></script>
     <script>
         // 加载并显示详细信息
         document.addEventListener('DOMContentLoaded', function() {
