@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据列表</title>
+    <link rel="stylesheet" href="style1.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>数据列表</h1>
+            <button id="backButton" class="btn-secondary">返回上传</button>
+        </header>
+        
+        <main>
+            <div class="data-controls">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="搜索姓名、手机号或身份证号...">
+                    <button id="searchButton">搜索</button>
+                </div>
+                <div class="total-count">
+                    共 <span id="totalCount">0</span> 条数据
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <table id="dataTable">
+                    <thead>
+                        <tr>
+                            <th>序号</th>
+                            <th>姓名</th>
+                            <th>手机号</th>
+                            <th>身份证号</th>
+                            <th>评分结果</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- 数据将通过JavaScript填充 -->
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const backButton = document.getElementById('backButton');
+            const dataTable = document.getElementById('dataTable');
+            const searchInput = document.getElementById('searchInput');
+            const searchButton = document.getElementById('searchButton');
+            const totalCount = document.getElementById('totalCount');
+            
+            // 返回上传页面
+            backButton.addEventListener('click', () => {
+                window.location.href = 'index.html';
+            });
+            
+            // 从sessionStorage获取数据
+            const excelData = JSON.parse(sessionStorage.getItem('excelData') || '[]');
+            
+            if (excelData.length === 0) {
+                alert('没有找到数据，请返回上传页面重新上传Excel文件');
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            // 生成300-850之间的随机评分[8](@ref)
+            function generateRandomScore() {
+                return Math.floor(Math.random() * (850 - 300 + 1)) + 300;
+            }
+            
+            // 为每条数据添加评分
+            const dataWithScores = excelData.map(item => {
+                return {
+                    ...item,
+                    score: generateRandomScore()
+                };
+            });
+            
+            // 保存带评分的数据
+            sessionStorage.setItem('scoredData', JSON.stringify(dataWithScores));
+            
+            // 渲染表格数据
+            function renderTable(data) {
+                const tbody = dataTable.querySelector('tbody');
+                tbody.innerHTML = '';
+                
+                data.forEach((item, index) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${index + 1}</td>
+                        <td>${item.name}</td>
+                        <td>${item.phone}</td>
+                        <td>${item.idCard}</td>
+                        <td class="score-cell">
+                            <span class="score-value">${item.score}</span>
+                        </td>
+                    `;
+                    
+                    // 添加点击事件，跳转到详情页
+                    row.addEventListener('click', () => {
+                        sessionStorage.setItem('selectedIndex', index);
+                        window.location.href = 'detail.html';
+                    });
+                    
+                    tbody.appendChild(row);
+                });
+                
+                totalCount.textContent = data.length;
+            }
+            
+            // 初始渲染所有数据
+            renderTable(dataWithScores);
+            
+            // 搜索功能
+            function handleSearch() {
+                const searchTerm = searchInput.value.toLowerCase().trim();
+                
+                if (!searchTerm) {
+                    renderTable(dataWithScores);
+                    return;
+                }
+                
+                const filteredData = dataWithScores.filter(item => 
+                    item.name.toLowerCase().includes(searchTerm) ||
+                    item.phone.includes(searchTerm) ||
+                    item.idCard.toLowerCase().includes(searchTerm)
+                );
+                
+                renderTable(filteredData);
+            }
+            
+            searchButton.addEventListener('click', handleSearch);
+            searchInput.addEventListener('keyup', (e) => {
+                if (e.key === 'Enter') {
+                    handleSearch();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

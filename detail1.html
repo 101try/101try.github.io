@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>评分详情</title>
+    <link rel="stylesheet" href="style1.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>评分详情</h1>
+            <button id="backButton" class="btn-secondary">返回列表</button>
+        </header>
+        
+        <main>
+            <div id="loading" class="loading">加载中...</div>
+            
+            <div id="detailContent" style="display:none;">
+                <div class="detail-card">
+                    <div class="personal-info">
+                        <h2 id="userName">姓名</h2>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>手机号:</label>
+                                <span id="userPhone"></span>
+                            </div>
+                            <div class="info-item">
+                                <label>身份证号:</label>
+                                <span id="userIdCard"></span>
+                            </div>
+                            <div class="info-item">
+                                <label>综合评分:</label>
+                                <span id="totalScore" class="total-score"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="score-radar">
+                        <h3>六维度评分图</h3>
+                        <canvas id="radarChart" width="400" height="400"></canvas>
+                    </div>
+                </div>
+                
+                <div class="dimension-details">
+                    <h3>各维度评分详情</h3>
+                    <div class="dimensions-grid">
+                        <div class="dimension-item">
+                            <h4>消费能力</h4>
+                            <div class="score-bar">
+                                <div class="score-fill" id="consumptionFill"></div>
+                            </div>
+                            <span class="dimension-score" id="consumptionScore"></span>
+                        </div>
+                        
+                        <div class="dimension-item">
+                            <h4>通讯活跃</h4>
+                            <div class="score-bar">
+                                <div class="score-fill" id="communicationFill"></div>
+                            </div>
+                            <span class="dimension-score" id="communicationScore"></span>
+                        </div>
+                        
+                        <div class="dimension-item">
+                            <h4>工作稳定</h4>
+                            <div class="score-bar">
+                                <div class="score-fill" id="stabilityFill"></div>
+                            </div>
+                            <span class="dimension-score" id="stabilityScore"></span>
+                        </div>
+                        
+                        <div class="dimension-item">
+                            <h4>资产状况</h4>
+                            <div class="score-bar">
+                                <div class="score-fill" id="assetsFill"></div>
+                            </div>
+                            <span class="dimension-score" id="assetsScore"></span>
+                        </div>
+                        
+                        <div class="dimension-item">
+                            <h4>信贷活跃</h4>
+                            <div class="score-bar">
+                                <div class="score-fill" id="creditFill"></div>
+                            </div>
+                            <span class="dimension-score" id="creditScore"></span>
+                        </div>
+                        
+                        <div class="dimension-item">
+                            <h4>居住稳定</h4>
+                            <div class="score-bar">
+                                <div class="score-fill" id="residenceFill"></div>
+                            </div>
+                            <span class="dimension-score" id="residenceScore"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const backButton = document.getElementById('backButton');
+            const loading = document.getElementById('loading');
+            const detailContent = document.getElementById('detailContent');
+            
+            // 返回列表页面
+            backButton.addEventListener('click', () => {
+                window.location.href = 'list1.html';
+            });
+            
+            // 从sessionStorage获取数据
+            const scoredData = JSON.parse(sessionStorage.getItem('scoredData') || '[]');
+            const selectedIndex = sessionStorage.getItem('selectedIndex');
+            
+            if (scoredData.length === 0 || !selectedIndex) {
+                alert('没有找到数据，请返回列表页面重新选择');
+                window.location.href = 'list1.html';
+                return;
+            }
+            
+            const selectedData = scoredData[selectedIndex];
+            
+            // 生成六个维度的随机分数（基于总分的加权随机）
+            function generateDimensionScores(totalScore) {
+                const baseScore = totalScore / 850 * 100; // 转换为百分比基础
+                
+                return {
+                    consumption: Math.floor(Math.random() * 20 + baseScore * 0.8),
+                    communication: Math.floor(Math.random() * 20 + baseScore * 0.7),
+                    stability: Math.floor(Math.random() * 20 + baseScore * 0.9),
+                    assets: Math.floor(Math.random() * 20 + baseScore * 0.85),
+                    credit: Math.floor(Math.random() * 20 + baseScore * 0.75),
+                    residence: Math.floor(Math.random() * 20 + baseScore * 0.95)
+                };
+            }
+            
+            const dimensionScores = generateDimensionScores(selectedData.score);
+            
+            // 更新页面信息
+            document.getElementById('userName').textContent = selectedData.name;
+            document.getElementById('userPhone').textContent = selectedData.phone;
+            document.getElementById('userIdCard').textContent = selectedData.idCard;
+            document.getElementById('totalScore').textContent = selectedData.score;
+            
+            // 更新各维度评分
+            Object.keys(dimensionScores).forEach(dimension => {
+                const score = dimensionScores[dimension];
+                document.getElementById(`${dimension}Score`).textContent = score;
+                document.getElementById(`${dimension}Fill`).style.width = `${score}%`;
+            });
+            
+            // 绘制雷达图
+            const ctx = document.getElementById('radarChart').getContext('2d');
+            const radarChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['消费能力', '通讯活跃', '工作稳定', '资产状况', '信贷活跃', '居住稳定'],
+                    datasets: [{
+                        label: '维度评分',
+                        data: [
+                            dimensionScores.consumption,
+                            dimensionScores.communication,
+                            dimensionScores.stability,
+                            dimensionScores.assets,
+                            dimensionScores.credit,
+                            dimensionScores.residence
+                        ],
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(54, 162, 235, 1)'
+                    }]
+                },
+                options: {
+                    scale: {
+                        ticks: {
+                            beginAtZero: true,
+                            max: 100,
+                            min: 0
+                        }
+                    },
+                    elements: {
+                        line: {
+                            tension: 0.2
+                        }
+                    }
+                }
+            });
+            
+            // 隐藏加载提示，显示内容
+            loading.style.display = 'none';
+            detailContent.style.display = 'block';
+        });
+    </script>
+</body>
+</html>
