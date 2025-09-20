@@ -3,155 +3,174 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Excel数据上传</title>
+    <title>数据列表</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Excel数据上传</h1>
+            <h1>数据列表</h1>
+            <button id="backButton" class="btn-secondary">返回上传</button>
         </header>
         
         <main>
-            <div class="upload-area" id="uploadArea">
-                <div class="upload-placeholder">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                        <polyline points="14 2 14 8 20 8"></polyline>
-                        <line x1="16" y1="13" x2="8" y2="13"></line>
-                        <line x1="16" y1="17" x2="8" y2="17"></line>
-                        <polyline points="10 9 9 9 8 9"></polyline>
-                    </svg>
-                    <p>拖拽Excel文件到此处或点击选择文件</p>
-                    <p class="upload-hint">支持.xlsx格式，需包含姓名、手机号、身份证号三列</p>
+            <div class="data-controls">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="搜索姓名、手机号或身份证号...">
+                    <button id="searchButton">搜索</button>
                 </div>
-                <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none;">
+                <div class="sort-controls">
+                    <label for="sortSelect">排序方式:</label>
+                    <select id="sortSelect">
+                        <option value="scoreDesc">评分从高到低</option>
+                        <option value="scoreAsc">评分从低到高</option>
+                        <option value="name">按姓名排序</option>
+                    </select>
+                </div>
+                <div class="total-count">
+                    共 <span id="totalCount">0</span> 条数据
+                </div>
             </div>
             
-            <div class="button-group">
-                <button id="uploadButton" class="btn-primary">选择文件</button>
-            </div>
-            
-            <div id="preview" class="preview-container" style="display:none;">
-                <h3>文件预览</h3>
-                <div id="previewContent"></div>
-                <button id="processData" class="btn-primary">处理数据</button>
+            <div class="table-container">
+                <table id="dataTable">
+                    <thead>
+                        <tr>
+                            <th>序号</th>
+                            <th>姓名</th>
+                            <th>手机号</th>
+                            <th>身份证号</th>
+                            <th>评分结果</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- 数据将通过JavaScript填充 -->
+                    </tbody>
+                </table>
             </div>
         </main>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="script.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const uploadArea = document.getElementById('uploadArea');
-            const fileInput = document.getElementById('fileInput');
-            const uploadButton = document.getElementById('uploadButton');
-            const preview = document.getElementById('preview');
-            const previewContent = document.getElementById('previewContent');
-            const processData = document.getElementById('processData');
+            const backButton = document.getElementById('backButton');
+            const dataTable = document.getElementById('dataTable');
+            const searchInput = document.getElementById('searchInput');
+            const searchButton = document.getElementById('searchButton');
+            const sortSelect = document.getElementById('sortSelect');
+            const totalCount = document.getElementById('totalCount');
             
-            // 点击上传区域或按钮触发文件选择
-            uploadArea.addEventListener('click', () => fileInput.click());
-            uploadButton.addEventListener('click', () => fileInput.click());
-            
-            // 拖拽上传功能
-            uploadArea.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                uploadArea.classList.add('dragover');
+            // 返回上传页面
+            backButton.addEventListener('click', () => {
+                window.location.href = 'index.html';
             });
             
-            uploadArea.addEventListener('dragleave', () => {
-                uploadArea.classList.remove('dragover');
+            // 从sessionStorage获取数据
+            const excelData = JSON.parse(sessionStorage.getItem('excelData') || '[]');
+            
+            if (excelData.length === 0) {
+                alert('没有找到数据，请返回上传页面重新上传Excel文件');
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            // 生成0-100之间的随机评分
+            function generateRandomScore() {
+                return Math.floor(Math.random() * (850 - 300 + 1)) + 300;
+            }
+            
+            // 为每条数据添加评分
+            let dataWithScores = excelData.map(item => {
+                return {
+                    ...item,
+                    score: generateRandomScore()
+                };
             });
             
-            uploadArea.addEventListener('drop', (e) => {
-                e.preventDefault();
-                uploadArea.classList.remove('dragover');
+            // 保存带评分的数据
+            sessionStorage.setItem('scoredData', JSON.stringify(dataWithScores));
+            
+            // 排序函数
+            function sortData(data, sortType) {
+                const sortedData = [...data];
                 
-                if (e.dataTransfer.files.length) {
-                    handleFile(e.dataTransfer.files[0]);
+                switch(sortType) {
+                    case 'scoreDesc':
+                        return sortedData.sort((a, b) => b.score - a.score);
+                    case 'scoreAsc':
+                        return sortedData.sort((a, b) => a.score - b.score);
+                    case 'name':
+                        return sortedData.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
+                    default:
+                        return sortedData;
                 }
+            }
+            
+            // 渲染表格数据
+            function renderTable(data) {
+                const tbody = dataTable.querySelector('tbody');
+                tbody.innerHTML = '';
+                
+                data.forEach((item, index) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${index + 1}</td>
+                        <td>${item.name}</td>
+                        <td>${item.phone}</td>
+                        <td>${item.idCard}</td>
+                        <td class="score-cell">
+                            <span class="score-value">${item.score}</span>
+                        </td>
+                    `;
+                    
+                    // 添加点击事件，跳转到详情页
+                    row.addEventListener('click', () => {
+                        sessionStorage.setItem('selectedIndex', index);
+                        window.location.href = 'detail.html';
+                    });
+                    
+                    tbody.appendChild(row);
+                });
+                
+                totalCount.textContent = data.length;
+            }
+            
+            // 初始渲染所有数据（按评分从高到低排序）
+            dataWithScores = sortData(dataWithScores, 'scoreDesc');
+            renderTable(dataWithScores);
+            
+            // 排序功能
+            sortSelect.addEventListener('change', () => {
+                const sortedData = sortData(dataWithScores, sortSelect.value);
+                renderTable(sortedData);
             });
             
-            // 文件选择变化
-            fileInput.addEventListener('change', (e) => {
-                if (e.target.files.length) {
-                    handleFile(e.target.files[0]);
-                }
-            });
-            
-            // 处理Excel文件
-            function handleFile(file) {
-                if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
-                    alert('请上传Excel文件(.xlsx或.xls格式)');
+            // 搜索功能
+            function handleSearch() {
+                const searchTerm = searchInput.value.toLowerCase().trim();
+                
+                if (!searchTerm) {
+                    const sortedData = sortData(dataWithScores, sortSelect.value);
+                    renderTable(sortedData);
                     return;
                 }
                 
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    try {
-                        const data = new Uint8Array(e.target.result);
-                        const workbook = XLSX.read(data, { type: 'array' });
-                        
-                        // 获取第一个工作表
-                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                        const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: ['name', 'phone', 'idCard'] });
-                        
-                        // 过滤掉空行和标题行
-                        const filteredData = jsonData.filter(row => 
-                            row.name && row.phone && row.idCard && 
-                            row.name !== '姓名' && row.phone !== '手机号' && row.idCard !== '身份证号'
-                        );
-                        
-                        if (filteredData.length === 0) {
-                            alert('Excel文件中未找到有效数据，请确保包含姓名、手机号和身份证号三列');
-                            return;
-                        }
-                        
-                        // 显示预览
-                        preview.style.display = 'block';
-                        previewContent.innerHTML = `
-                            <p>文件名称: ${file.name}</p>
-                            <p>数据条数: ${filteredData.length} 条</p>
-                            <div class="data-sample">
-                                <h4>数据样例:</h4>
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>姓名</th>
-                                            <th>手机号</th>
-                                            <th>身份证号</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        ${filteredData.slice(0, 3).map(row => `
-                                            <tr>
-                                                <td>${row.name}</td>
-                                                <td>${row.phone}</td>
-                                                <td>${row.idCard}</td>
-                                            </tr>
-                                        `).join('')}
-                                    </tbody>
-                                </table>
-                            </div>
-                        `;
-                        
-                        // 保存数据到sessionStorage以便下一页使用
-                        sessionStorage.setItem('excelData', JSON.stringify(filteredData));
-                        
-                    } catch (error) {
-                        console.error('解析Excel文件时出错:', error);
-                        alert('解析Excel文件失败，请检查文件格式是否正确');
-                    }
-                };
+                const filteredData = dataWithScores.filter(item => 
+                    item.name.toLowerCase().includes(searchTerm) ||
+                    item.phone.includes(searchTerm) ||
+                    item.idCard.toLowerCase().includes(searchTerm)
+                );
                 
-                reader.readAsArrayBuffer(file);
+                const sortedData = sortData(filteredData, sortSelect.value);
+                renderTable(sortedData);
             }
             
-            // 处理数据按钮点击事件
-            processData.addEventListener('click', () => {
-                window.location.href = 'list.html';
+            searchButton.addEventListener('click', handleSearch);
+            searchInput.addEventListener('keyup', (e) => {
+                if (e.key === 'Enter') {
+                    handleSearch();
+                }
             });
         });
     </script>
