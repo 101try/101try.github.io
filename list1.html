@@ -51,7 +51,6 @@
         </main>
     </div>
 
-    <script src="script.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const backButton = document.getElementById('backButton');
@@ -75,7 +74,7 @@
                 return;
             }
             
-            // 生成0-100之间的随机评分
+            // 生成300-850之间的随机评分
             function generateRandomScore() {
                 return Math.floor(Math.random() * (850 - 300 + 1)) + 300;
             }
@@ -124,9 +123,12 @@
                         </td>
                     `;
                     
-                    // 添加点击事件，跳转到详情页
+                    // 修改点击事件：传递身份证号而不是索引
                     row.addEventListener('click', () => {
-                        sessionStorage.setItem('selectedIndex', index);
+                        // 保存当前排序后的数据
+                        sessionStorage.setItem('currentSortedData', JSON.stringify(data));
+                        // 传递身份证号作为标识符
+                        sessionStorage.setItem('selectedIdCard', item.idCard);
                         window.location.href = 'detail1.html';
                     });
                     
