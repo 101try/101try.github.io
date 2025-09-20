@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>评分详情</title>
-    <link rel="stylesheet" href="style1.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
@@ -108,7 +108,7 @@
             
             // 返回列表页面
             backButton.addEventListener('click', () => {
-                window.location.href = 'list1.html';
+                window.location.href = 'list.html';
             });
             
             // 从sessionStorage获取数据
@@ -117,24 +117,34 @@
             
             if (scoredData.length === 0 || !selectedIndex) {
                 alert('没有找到数据，请返回列表页面重新选择');
-                window.location.href = 'list1.html';
+                window.location.href = 'list.html';
                 return;
             }
             
             const selectedData = scoredData[selectedIndex];
             
-            // 生成六个维度的随机分数（基于总分的加权随机）
+            // 将300-850的评分转换为0-100分制
+        function convertScoreTo100(score) {
+            // 线性转换: (score - 300) / (850 - 300) * 100
+            return Math.round(((score - 300) / 550) * 100);
+        }
+
+            // 生成六个维度的随机分数（基于总分的加权随机，0-100分）
             function generateDimensionScores(totalScore) {
-                const baseScore = totalScore / 850 * 100; // 转换为百分比基础
-                
-                return {
-                    consumption: Math.floor(Math.random() * 20 + baseScore * 0.8),
-                    communication: Math.floor(Math.random() * 20 + baseScore * 0.7),
-                    stability: Math.floor(Math.random() * 20 + baseScore * 0.9),
-                    assets: Math.floor(Math.random() * 20 + baseScore * 0.85),
-                    credit: Math.floor(Math.random() * 20 + baseScore * 0.75),
-                    residence: Math.floor(Math.random() * 20 + baseScore * 0.95)
-                };
+                // 将总分转换为0-100分制
+            const convertedScore = convertScoreTo100(totalScore);
+            
+            // 基础分数（转换后总分的80%-120%范围内，但不超过100）
+            const baseVariation = convertedScore * 0.2; // 20%的波动范围
+            
+            return {
+                consumption: Math.min(100, Math.floor(Math.random() * baseVariation + convertedScore * 0.8)),
+                communication: Math.min(100, Math.floor(Math.random() * baseVariation + convertedScore * 0.7)),
+                stability: Math.min(100, Math.floor(Math.random() * baseVariation + convertedScore * 0.9)),
+                assets: Math.min(100, Math.floor(Math.random() * baseVariation + convertedScore * 0.85)),
+                credit: Math.min(100, Math.floor(Math.random() * baseVariation + convertedScore * 0.75)),
+                residence: Math.min(100, Math.floor(Math.random() * baseVariation + convertedScore * 0.95))
+            };
             }
             
             const dimensionScores = generateDimensionScores(selectedData.score);
@@ -177,11 +187,17 @@
                     }]
                 },
                 options: {
-                    scale: {
-                        ticks: {
+                    scales: {
+                        r: {
                             beginAtZero: true,
                             max: 100,
-                            min: 0
+                            min: 0,
+                            ticks: {
+                                stepSize: 20, // 100/6 ≈ 16.67，实现6等分
+                                callback: function(value) {
+                                    return value + '分';
+                                }
+                            }
                         }
                     },
                     elements: {
