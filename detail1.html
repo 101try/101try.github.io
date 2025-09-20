@@ -99,7 +99,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="script.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const backButton = document.getElementById('backButton');
@@ -113,38 +112,50 @@
             
             // 从sessionStorage获取数据
             const scoredData = JSON.parse(sessionStorage.getItem('scoredData') || '[]');
-            const selectedIndex = sessionStorage.getItem('selectedIndex');
+            const currentSortedData = JSON.parse(sessionStorage.getItem('currentSortedData') || '[]');
+            const selectedIdCard = sessionStorage.getItem('selectedIdCard');
             
-            if (scoredData.length === 0 || !selectedIndex) {
+            if (scoredData.length === 0 || !selectedIdCard) {
                 alert('没有找到数据，请返回列表页面重新选择');
                 window.location.href = 'list1.html';
                 return;
             }
             
-            const selectedData = scoredData[selectedIndex];
+            // 根据身份证号查找选中的记录
+            // 优先从当前排序数据中查找，如果没有则从原始数据中查找
+            let selectedData = currentSortedData.find(item => item.idCard === selectedIdCard);
+            if (!selectedData) {
+                selectedData = scoredData.find(item => item.idCard === selectedIdCard);
+            }
+            
+            if (!selectedData) {
+                alert('未找到对应的数据记录');
+                window.location.href = 'list1.html';
+                return;
+            }
             
             // 将300-850的评分转换为0-100分制
-        function convertScoreTo100(score) {
-            // 线性转换: (score - 300) / (850 - 300) * 100
-            return Math.round(((score - 300) / 550) * 100);
-        }
-
-            // 生成六个维度的随机分数（基于总分的加权随机，0-100分）
+            function convertScoreTo100(score) {
+                // 线性转换: (score - 300) / (850 - 300) * 100
+                return Math.round(((score - 300) / 550) * 100);
+            }
+            
+            // 生成六个维度的随机分数（0-100分制）
             function generateDimensionScores(totalScore) {
                 // 将总分转换为0-100分制
-            const convertedScore = convertScoreTo100(totalScore);
-            
-            // 基础分数（转换后总分的80%-120%范围内，但不超过100）
-            const baseVariation = convertedScore * 0.2; // 20%的波动范围
-            
-            return {
-                consumption: Math.min(100, Math.floor(Math.random() * baseVariation + convertedScore * 0.8)),
-                communication: Math.min(100, Math.floor(Math.random() * baseVariation + convertedScore * 0.7)),
-                stability: Math.min(100, Math.floor(Math.random() * baseVariation + convertedScore * 0.9)),
-                assets: Math.min(100, Math.floor(Math.random() * baseVariation + convertedScore * 0.85)),
-                credit: Math.min(100, Math.floor(Math.random() * baseVariation + convertedScore * 0.75)),
-                residence: Math.min(100, Math.floor(Math.random() * baseVariation + convertedScore * 0.95))
-            };
+                const convertedScore = convertScoreTo100(totalScore);
+                
+                // 基础分数（转换后总分的80%-120%范围内，但不超过100）
+                const baseVariation = convertedScore * 0.2; // 20%的波动范围
+                
+                return {
+                    consumption: Math.min(100, Math.floor(Math.random() * baseVariation + convertedScore * 0.8)),
+                    communication: Math.min(100, Math.floor(Math.random() * baseVariation + convertedScore * 0.7)),
+                    stability: Math.min(100, Math.floor(Math.random() * baseVariation + convertedScore * 0.9)),
+                    assets: Math.min(100, Math.floor(Math.random() * baseVariation + convertedScore * 0.85)),
+                    credit: Math.min(100, Math.floor(Math.random() * baseVariation + convertedScore * 0.75)),
+                    residence: Math.min(100, Math.floor(Math.random() * baseVariation + convertedScore * 0.95))
+                };
             }
             
             const dimensionScores = generateDimensionScores(selectedData.score);
@@ -155,6 +166,10 @@
             document.getElementById('userIdCard').textContent = selectedData.idCard;
             document.getElementById('totalScore').textContent = selectedData.score;
             
+            // 计算并显示转换后的分数
+            const convertedScore = convertScoreTo100(selectedData.score);
+            document.getElementById('convertedScore').textContent = `${convertedScore}分 (${selectedData.score}→${convertedScore})`;
+            
             // 更新各维度评分
             Object.keys(dimensionScores).forEach(dimension => {
                 const score = dimensionScores[dimension];
@@ -162,14 +177,14 @@
                 document.getElementById(`${dimension}Fill`).style.width = `${score}%`;
             });
             
-            // 绘制雷达图
+            // 绘制雷达图（0-100分制，6等分）
             const ctx = document.getElementById('radarChart').getContext('2d');
             const radarChart = new Chart(ctx, {
                 type: 'radar',
                 data: {
                     labels: ['消费能力', '通讯活跃', '工作稳定', '资产状况', '信贷活跃', '居住稳定'],
                     datasets: [{
-                        label: '维度评分',
+                        label: '维度评分 (0-100分制)',
                         data: [
                             dimensionScores.consumption,
                             dimensionScores.communication,
@@ -193,7 +208,7 @@
                             max: 100,
                             min: 0,
                             ticks: {
-                                stepSize: 20, // 100/6 ≈ 16.67，实现6等分
+                                stepSize: 20, // 100/5 = 20，实现5等分
                                 callback: function(value) {
                                     return value + '分';
                                 }
